@@ -64,14 +64,9 @@ function disable_bbr() {
     sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
     sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
     
-    # Reset to defaults (usually cubic and fq_codel/pfifo_fast)
-    # Most modern distros use fq_codel by default, but we'll let sysctl handle the fallback if we just remove the lines.
-    # To be safe, we can set it back to cubic.
-    echo "net.ipv4.tcp_congestion_control=cubic" >> /etc/sysctl.conf
-    
     sysctl -p > /dev/null
     
-    echo -e "${GREEN}BBR disabled successfully (reset to cubic).${NC}"
+    echo -e "${GREEN}BBR disabled successfully (configuration lines removed).${NC}"
     get_status
 }
 
