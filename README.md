@@ -4,29 +4,29 @@ A simple script to enable or disable BBR TCP congestion control on Linux servers
 
 ## Quick Install
 
-Run the following command to install and run the script:
+Run the following command to install the script system-wide:
 
 ```bash
-wget -N --no-check-certificate https://raw.githubusercontent.com/PedroLiu1999/bbr/main/bbr.sh && chmod +x bbr.sh && ./bbr.sh status
+sudo wget -O /usr/local/bin/bbr --no-check-certificate https://raw.githubusercontent.com/PedroLiu1999/bbr/main/bbr.sh && sudo chmod +x /usr/local/bin/bbr && bbr status
 ```
 
 ## Usage
 
-Once installed, you can use the script with the following commands:
+Once installed, you can use the script from anywhere:
 
 ### Enable BBR
 ```bash
-sudo ./bbr.sh enable
+sudo bbr enable
 ```
 
 ### Disable BBR
 ```bash
-sudo ./bbr.sh disable
+sudo bbr disable
 ```
 
 ### Check Status
 ```bash
-sudo ./bbr.sh status
+sudo bbr status
 ```
 
 ## Requirements
