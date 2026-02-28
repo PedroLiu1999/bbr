@@ -36,13 +36,25 @@ function get_status() {
     fi
 }
 
+BACKUP_FILE="/etc/.bbr_defaults"
+
 function enable_bbr() {
     echo -e "Enabling BBR..."
     
     # Check if already enabled
-    if [[ $(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}') == "bbr" ]]; then
+    current_cc=$(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}')
+    current_fq=$(sysctl net.core.default_qdisc | awk '{print $3}')
+
+    if [[ "$current_cc" == "bbr" ]]; then
         echo -e "${GREEN}BBR is already enabled.${NC}"
         return
+    fi
+
+    # Backup current defaults if they aren't BBR
+    if [[ ! -f "$BACKUP_FILE" ]]; then
+        echo "net.ipv4.tcp_congestion_control=$current_cc" > "$BACKUP_FILE"
+        echo "net.core.default_qdisc=$current_fq" >> "$BACKUP_FILE"
+        echo -e "Backed up current defaults to ${GREEN}$BACKUP_FILE${NC}"
     fi
 
     # Update sysctl.conf
@@ -65,14 +77,23 @@ function disable_bbr() {
     sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
     sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
     
-    # Immediately revert kernel parameters to standard defaults
-    sysctl -w net.core.default_qdisc=fq_codel > /dev/null 2>&1
-    sysctl -w net.ipv4.tcp_congestion_control=cubic > /dev/null 2>&1
+    # Try to restore from backup
+    if [[ -f "$BACKUP_FILE" ]]; then
+        source "$BACKUP_FILE"
+        echo -e "Restoring defaults from backup..."
+        sysctl -w net.core.default_qdisc=$net_core_default_qdisc > /dev/null 2>&1
+        sysctl -w net.ipv4.tcp_congestion_control=$net_ipv4_tcp_congestion_control > /dev/null 2>&1
+    else
+        # Fallback to hardcoded defaults if no backup exists
+        echo -e "${RED}Warning: No backup file found. Falling back to hardcoded defaults.${NC}"
+        sysctl -w net.core.default_qdisc=fq_codel > /dev/null 2>&1
+        sysctl -w net.ipv4.tcp_congestion_control=cubic > /dev/null 2>&1
+    fi
     
     # Reload remaining settings
     sysctl -p > /dev/null
     
-    echo -e "${GREEN}BBR disabled successfully (configuration lines removed and kernel parameters reset).${NC}"
+    echo -e "${GREEN}BBR disabled successfully (configuration lines removed and defaults restored).${NC}"
     get_status
 }
 
