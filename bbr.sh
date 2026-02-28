@@ -97,8 +97,37 @@ function disable_bbr() {
     get_status
 }
 
+function uninstall_bbr() {
+    echo -e "Starting uninstallation..."
+    
+    # Check if BBR is enabled and ask to disable
+    current_cc=$(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}')
+    if [[ "$current_cc" == "bbr" ]]; then
+        read -p "BBR is currently enabled. Would you like to disable it and restore defaults before uninstalling? (y/n): " choice
+        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+            disable_bbr
+        fi
+    fi
+
+    # Remove backup file
+    if [[ -f "$BACKUP_FILE" ]]; then
+        rm -f "$BACKUP_FILE"
+        echo -e "Removed backup file ${GREEN}$BACKUP_FILE${NC}"
+    fi
+
+    # Remove the script itself if installed in /usr/local/bin
+    if [[ -f "/usr/local/bin/bbr" ]]; then
+        rm -f "/usr/local/bin/bbr"
+        echo -e "Removed system-wide script ${GREEN}/usr/local/bin/bbr${NC}"
+    elif [[ -f "./bbr.sh" ]]; then
+        echo -e "${RED}Warning: Local file bbr.sh not removed. Please delete it manually if desired.${NC}"
+    fi
+
+    echo -e "${GREEN}Uninstallation complete!${NC}"
+}
+
 function usage() {
-    echo "Usage: $0 {enable|disable|status}"
+    echo "Usage: $0 {enable|disable|status|uninstall}"
     exit 1
 }
 
@@ -115,6 +144,9 @@ case "$1" in
         ;;
     status)
         get_status
+        ;;
+    uninstall)
+        uninstall_bbr
         ;;
     *)
         usage
