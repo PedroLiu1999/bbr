@@ -73,16 +73,16 @@ function enable_bbr() {
 function disable_bbr() {
     echo -e "Disabling BBR..."
     
-    # Remove from config file
-    sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
-    sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
-    
-    # Try to restore from backup
+    # 1. Try to restore from backup first (while we still have the backup file)
     if [[ -f "$BACKUP_FILE" ]]; then
         source "$BACKUP_FILE"
         echo -e "Restoring defaults from backup..."
         sysctl -w net.core.default_qdisc=$net_core_default_qdisc > /dev/null 2>&1
         sysctl -w net.ipv4.tcp_congestion_control=$net_ipv4_tcp_congestion_control > /dev/null 2>&1
+        
+        # 2. Remove the backup file after successful restoration
+        rm -f "$BACKUP_FILE"
+        echo -e "Removed backup file ${GREEN}$BACKUP_FILE${NC}"
     else
         # Fallback to hardcoded defaults if no backup exists
         echo -e "${RED}Warning: No backup file found. Falling back to hardcoded defaults.${NC}"
@@ -90,10 +90,14 @@ function disable_bbr() {
         sysctl -w net.ipv4.tcp_congestion_control=cubic > /dev/null 2>&1
     fi
     
-    # Reload remaining settings
+    # 3. Remove BBR lines from sysctl.conf AFTER restore
+    sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+    sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+    
+    # 4. Reload remaining settings
     sysctl -p > /dev/null
     
-    echo -e "${GREEN}BBR disabled successfully (configuration lines removed and defaults restored).${NC}"
+    echo -e "${GREEN}BBR disabled successfully (configuration cleaned and defaults restored).${NC}"
     get_status
 }
 
