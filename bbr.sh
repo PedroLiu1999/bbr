@@ -61,12 +61,18 @@ function enable_bbr() {
 function disable_bbr() {
     echo -e "Disabling BBR..."
     
+    # Remove from config file
     sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
     sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
     
+    # Immediately revert kernel parameters to standard defaults
+    sysctl -w net.core.default_qdisc=fq_codel > /dev/null 2>&1
+    sysctl -w net.ipv4.tcp_congestion_control=cubic > /dev/null 2>&1
+    
+    # Reload remaining settings
     sysctl -p > /dev/null
     
-    echo -e "${GREEN}BBR disabled successfully (configuration lines removed).${NC}"
+    echo -e "${GREEN}BBR disabled successfully (configuration lines removed and kernel parameters reset).${NC}"
     get_status
 }
 
